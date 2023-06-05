@@ -1,60 +1,72 @@
 import { fetchBreeds, fetchCatByBreed } from './cat-api.js';
+import Notiflix from 'notiflix';
 
-const breedSelect = document.querySelector(".breed-select");
-const catInfo = document.querySelector(".cat-info");
-const loader = document.querySelector(".loader");
-const error = document.querySelector(".error");
 
-loader.style.display = "none";
-error.style.display = "none";
+const breedSelect = document.querySelector('.breed-select');
+const catInfo = document.querySelector('.cat-info');
+const loader = document.querySelector('.loader');
+
+function toggleVisibility(element) {
+  element.classList.toggle('invisible');
+}
+
+function handleFetchError(error) {
+  Notiflix.Notify.failure(
+    `Oops! Something went wrong! Try reloading the page!`
+  );
+}
 
 fetchBreeds()
-  .then((breeds) => {
+  .then(breeds => {
+    toggleVisibility(loader);
+    toggleVisibility(catInfo);
     populateBreedSelect(breeds);
-    loader.style.display = "none";
-    breedSelect.style.display = "block";
   })
-  .catch((error) => {
-    console.log(error);
-    loader.style.display = "none";
-    error.style.display = "block";
+  .catch(handleFetchError)
+  .finally(() => {
+    setTimeout(() => {
+      toggleVisibility(loader);
+      toggleVisibility(catInfo);
+    }, 800);
   });
-
-breedSelect.addEventListener("change", () => {
-//   breedSelect.style.display = "none";
-  loader.style.display = "block";
-
-  const selectedBreedId = breedSelect.value;
-  fetchCatByBreed(selectedBreedId)
-    .then((cat) => {
-      renderCatInfo(cat);
-      loader.style.display = "none";
-      catInfo.style.display = "block";
-    })
-    .catch((error) => {
-      console.log(error);
-      loader.style.display = "none";
-      error.style.display = "block";
-    });
-});
 
 function populateBreedSelect(breeds) {
-  breedSelect.innerHTML = ""; // Очищаємо список перед заповненням
-  breeds.forEach((breed) => {
-    const option = document.createElement("option");
-    option.value = breed.id;
-    option.textContent = breed.name;
-    breedSelect.appendChild(option);
-  });
+  breedSelect.innerHTML = breeds
+    .map(breed => {
+      return `<option value="${breed.id}">${breed.name}</option>`;
+    })
+    .join('');
+}
+
+function handleBreedSelectChange() {
+  const selectedBreedId = breedSelect.value;
+
+  toggleVisibility(loader);
+  toggleVisibility(catInfo);
+
+  fetchCatByBreed(selectedBreedId)
+    .then(cat => {
+      renderCatInfo(cat);
+    })
+    .catch(handleFetchError)
+    .finally(() => {
+      setTimeout(() => {
+        toggleVisibility(loader);
+        toggleVisibility(catInfo);
+      }, 800);
+    });
 }
 
 function renderCatInfo(cat) {
   catInfo.innerHTML = `
-    <div class="renderCatInfo">
-      <img src="${cat.image}" alt="${cat.name}">
-      <h2>${cat.name}</h2>
-      <p>${cat.description}</p>
-      <p><b>Temperament: </b>${cat.temperament}</p>
-    </div>
+    <img width="400" src="${cat.image}" alt="${cat.name}">
+    <h2>${cat.name}</h2>
+    <p>${cat.description}</p>
+    <p><b>Temperament: </b>${cat.temperament}</p>
   `;
 }
+
+breedSelect.addEventListener('change', handleBreedSelectChange);
+
+
+
